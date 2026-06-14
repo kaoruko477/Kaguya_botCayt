@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaguya 2.0_bot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.07);
+    --glass: rgba(18,22,32,0.85);
+    --glass-border: rgba(255,255,255,0.07);
+    --accent: #7c6af7;
+    --accent-soft: rgba(124,106,247,0.15);
+    --accent2: #4fa3e0;
+    --msg-bot: rgba(26,30,44,0.95);
+    --msg-user: rgba(124,106,247,0.22);
+    --text: #e8eaf2;
+    --text-secondary: #7a7f99;
+    --text-muted: #4a4f69;
+    --border: rgba(255,255,255,0.06);
+    --radius-sm: 10px;
+  }
+  html, body { height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); overflow: hidden; }
+  body {
+    background: radial-gradient(ellipse at 20% 50%, rgba(60,50,120,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 10%, rgba(30,80,140,0.15) 0%, transparent 55%),
+                #0d0f14;
+  }
+  #app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+
+  /* HEADER */
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--glass); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; z-index: 10; }
+  .header-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent); cursor: pointer; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0; transition: transform 0.2s; }
+  .header-avatar:hover { transform: scale(1.05); }
+  .header-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .header-info { flex: 1; min-width: 0; }
+  .header-name { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 5px; }
+  .header-status { font-size: 11.5px; color: var(--accent); margin-top: 1px; display: flex; align-items: center; gap: 5px; }
+  .status-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .profile-btn { padding: 7px 14px; background: var(--surface); border: 1px solid var(--glass-border); border-radius: 20px; color: var(--text-secondary); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .profile-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+  /* Verified badge */
+  .vbadge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #20b2fe; border-radius: 50%; flex-shrink: 0; }
+  .vbadge::after { content: ''; display: block; width: 5px; height: 8px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(40deg) translate(-1px,-1px); }
+  .vbadge-lg { width: 20px; height: 20px; }
+  .vbadge-lg::after { width: 6px; height: 10px; border-width: 2.5px; }
+
+  /* CHAT */
+  #chat { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 2px; }
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; animation: msgIn 0.28s cubic-bezier(.34,1.4,.64,1) both; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(12px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-avatar-sm { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; background: var(--accent-soft); border: 1.5px solid var(--accent); font-size: 13px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 2px; }
+  .msg-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.55; word-break: break-word; }
+  .bot .bubble { background: var(--msg-bot); border: 1px solid var(--glass-border); border-bottom-left-radius: 5px; color: var(--text); }
+  .user .bubble { background: var(--msg-user); border: 1px solid rgba(124,106,247,0.25); border-bottom-right-radius: 5px; color: var(--text); }
+  .msg-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: right; }
+  .bot .msg-time { text-align: left; }
+  .bubble a { color: var(--accent2); text-decoration: none; }
+  .bubble a:hover { text-decoration: underline; }
+
+  /* Typing */
+  .typing-bubble { display: flex; gap: 5px; align-items: center; padding: 12px 16px; }
+  .dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: bounce 1.2s ease-in-out infinite; opacity: 0.7; }
+  .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  /* ACTIONS */
+  #actions { padding: 8px 16px 16px; display: flex; flex-wrap: wrap; gap: 8px; background: var(--glass); backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 22px; border: 1px solid var(--glass-border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; white-space: nowrap; }
+  .btn:hover { background: var(--accent-soft); border-color: var(--accent); transform: translateY(-1px); }
+  .btn-start { width: 100%; justify-content: center; background: linear-gradient(135deg, var(--accent), #5c8de8); border: none; font-size: 14px; font-weight: 600; padding: 13px; box-shadow: 0 4px 20px rgba(124,106,247,0.35); }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(124,106,247,0.5); }
+  .btn-back { color: var(--text-secondary); }
+
+  /* PROFILE MODAL */
+  #profile-modal { display: none; position: absolute; inset: 0; z-index: 100; background: var(--bg); flex-direction: column; }
+  #profile-modal.open { display: flex; animation: slideUp 0.3s cubic-bezier(.34,1.3,.64,1) both; }
+  @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-header { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: var(--glass); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+  .modal-back { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--glass-border); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
+  .modal-back:hover { background: var(--surface-hover); color: var(--text); }
+  .modal-title { font-weight: 600; font-size: 16px; }
+  .profile-body { flex: 1; overflow-y: auto; padding: 24px 18px; display: flex; flex-direction: column; gap: 20px; }
+  .profile-avatar-area { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  #profile-avatar-display { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; cursor: pointer; }
+  #profile-avatar-display img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-name-row { display: flex; align-items: center; gap: 6px; justify-content: center; }
+  .field-label { font-size: 11.5px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .field-value { font-size: 14.5px; color: var(--text); padding: 12px 14px; background: var(--surface); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); }
+
+  /* ADMIN PANEL */
+  #admin-panel { display: none; flex-direction: column; gap: 14px; background: rgba(124,106,247,0.07); border: 1px solid rgba(124,106,247,0.2); border-radius: var(--radius-sm); padding: 16px; }
+  #admin-panel.open { display: flex; }
+  .admin-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+  .field-input { font-size: 14px; color: var(--text); padding: 11px 13px; background: rgba(255,255,255,0.05); border: 1px solid rgba(124,106,247,0.35); border-radius: var(--radius-sm); outline: none; width: 100%; font-family: 'Inter', sans-serif; transition: border-color 0.2s; }
+  .field-input:focus { border-color: var(--accent); }
+  .field-input::placeholder { color: var(--text-muted); }
+  .save-btn { padding: 13px; border-radius: 22px; background: linear-gradient(135deg, var(--accent), #5c8de8); border: none; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+  .save-btn:hover { transform: translateY(-1px); }
+
+  /* TOAST */
+  .toast { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(30,35,55,0.95); border: 1px solid var(--glass-border); color: var(--text); padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; white-space: nowrap; animation: toastIn 0.25s ease both, toastOut 0.25s ease 1.8s both; z-index: 200; pointer-events: none; backdrop-filter: blur(12px); }
+  @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-avatar" id="header-avatar-el" onclick="openProfile()">
+      <span id="header-avatar-emoji">🤖</span>
+    </div>
+    <div class="header-info">
+      <div class="header-name">
+        <span id="header-name">Kaguya 2.0_bot</span>
+        <span class="vbadge"></span>
+      </div>
+      <div class="header-status"><span class="status-dot"></span><span>в сети</span></div>
+    </div>
+    <button class="profile-btn" onclick="openProfile()">Профиль</button>
+  </header>
+
+  <div id="chat"></div>
+  <div id="actions"></div>
+
+  <div id="profile-modal">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeProfile()">‹</button>
+      <span class="modal-title">Профиль бота</span>
+    </div>
+    <div class="profile-body">
+      <div class="profile-avatar-area">
+        <div id="profile-avatar-display" onclick="adminTap()">
+          <span id="profile-avatar-emoji">🤖</span>
+        </div>
+        <div style="text-align:center">
+          <div class="profile-name-row">
+            <span id="profile-name-display" style="font-size:18px;font-weight:700;">Kaguya 2.0_bot</span>
+            <span class="vbadge vbadge-lg"></span>
+          </div>
+          <div id="profile-bio-display" style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Ваш виртуальный помощник</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Имя</div>
+        <div class="field-value" id="view-name">Kaguya 2.0_bot</div>
+      </div>
+      <div>
+        <div class="field-label">Bio</div>
+        <div class="field-value" id="view-bio">Ваш виртуальный помощник</div>
+      </div>
+
+      <div id="admin-panel">
+        <div class="admin-label">🔐 Панель администратора</div>
+        <div>
+          <div class="field-label">Имя бота</div>
+          <input class="field-input" id="edit-name" type="text" placeholder="Имя бота...">
+        </div>
+        <div>
+          <div class="field-label">Bio</div>
+          <input class="field-input" id="edit-bio" type="text" placeholder="Описание...">
+        </div>
+        <div>
+          <div class="field-label">Аватар — вставь сюда ссылку на фото</div>
+          <input class="field-input" id="edit-avatar-url" type="url" placeholder="https://...">
+        </div>
+        <button class="save-btn" onclick="saveProfile()">💾 Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const CATEGORIES = [
+  { id:'tiktok',    label:'🎵 TikTok',         link:'https://www.tiktok.com/@alkon191?_r=1&_t=ZS-97CUS2ew3AV',                              text:'@alkon191' },
+  { id:'whatsapp',  label:'📱 WhatsApp',        link:'https://wa.me/996556214091',                                                            text:'+996 556 214 091' },
+  { id:'youtube',   label:'📺 YouTube',         link:'https://www.youtube.com/@MAZIK_GAMR',                                                   text:'@MAZIK_GAMR' },
+  { id:'vk',        label:'💙 VK',              link:null,                                                                                    text:'Пока нету' },
+  { id:'discord',   label:'🎮 Discord',         link:null,                                                                                    text:'Пока нету' },
+  { id:'instagram', label:'📸 Instagram',       link:'https://www.instagram.com/kkman1007?igsh=MXR5eDlqanNuajlxMg==',                        text:'@kkman1007' },
+  { id:'mlbb',      label:'⚔️ Mobile Legends',  link:null,                                                                                    text:'ID: 1861252737 (Сервер: 18987)' },
+];
+
+let profile = { name:'Kaguya 2.0_bot', bio:'Ваш виртуальный помощник', avatarUrl:'ava.jpg' };
+try { const s = localStorage.getItem('kaguya_profile'); if(s){ const p=JSON.parse(s); profile.name=p.name||profile.name; profile.bio=p.bio||profile.bio; /* avatarUrl always from code */ } } catch(e){}
+
+let tapCount = 0, tapTimer = null, adminUnlocked = false;
+function adminTap() {
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => tapCount = 0, 3000);
+  if (tapCount >= 5 && !adminUnlocked) {
+    adminUnlocked = true; tapCount = 0;
+    const p = document.getElementById('admin-panel');
+    p.classList.add('open');
+    document.getElementById('edit-name').value = profile.name;
+    document.getElementById('edit-bio').value = profile.bio;
+    document.getElementById('edit-avatar-url').value = profile.avatarUrl || '';
+    showToast('🔐 Панель администратора открыта');
+  }
+}
+
+function renderProfile() {
+  document.getElementById('header-name').textContent = profile.name;
+  document.getElementById('profile-name-display').textContent = profile.name;
+  document.getElementById('profile-bio-display').textContent = profile.bio;
+  document.getElementById('view-name').textContent = profile.name;
+  document.getElementById('view-bio').textContent = profile.bio;
+  [
+    { wrap: document.getElementById('header-avatar-el'),      emoji: document.getElementById('header-avatar-emoji') },
+    { wrap: document.getElementById('profile-avatar-display'), emoji: document.getElementById('profile-avatar-emoji') }
+  ].forEach(({wrap, emoji}) => {
+    const old = wrap.querySelector('img'); if(old) old.remove();
+    if (profile.avatarUrl) {
+      emoji.style.display = 'none';
+      const img = document.createElement('img');
+      img.src = profile.avatarUrl;
+      img.onerror = () => { img.remove(); emoji.style.display = ''; };
+      wrap.appendChild(img);
+    } else { emoji.style.display = ''; }
+  });
+}
+
+function saveProfile() {
+  const n = document.getElementById('edit-name').value.trim();
+  const b = document.getElementById('edit-bio').value.trim();
+  const u = document.getElementById('edit-avatar-url').value.trim();
+  if(n) profile.name = n;
+  if(b) profile.bio = b;
+  profile.avatarUrl = u;
+  try { localStorage.setItem('kaguya_profile', JSON.stringify(profile)); } catch(e){}
+  renderProfile();
+  showToast('✅ Сохранено');
+}
+
+function openProfile() { document.getElementById('profile-modal').classList.add('open'); }
+function closeProfile() { document.getElementById('profile-modal').classList.remove('open'); }
+
+function showToast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.getElementById('app').appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function now() { return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}); }
+
+function addMsg(html, type) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div'); row.className = 'msg-row ' + type;
+  if (type === 'bot') {
+    const ava = document.createElement('div'); ava.className = 'msg-avatar-sm';
+    if (profile.avatarUrl) {
+      const img = document.createElement('img'); img.src = profile.avatarUrl;
+      img.onerror = () => { img.remove(); ava.textContent = '🤖'; };
+      ava.appendChild(img);
+    } else { ava.textContent = '🤖'; }
+    row.appendChild(ava);
+  }
+  const wrap = document.createElement('div');
+  const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.innerHTML = html;
+  const time = document.createElement('div'); time.className = 'msg-time'; time.textContent = now();
+  wrap.appendChild(bubble); wrap.appendChild(time); row.appendChild(wrap);
+  chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div'); row.className = 'msg-row bot'; row.id = 'typing-row';
+  const ava = document.createElement('div'); ava.className = 'msg-avatar-sm'; ava.textContent = '🤖';
+  const bubble = document.createElement('div'); bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  row.appendChild(ava); row.appendChild(bubble);
+  chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping() { const t = document.getElementById('typing-row'); if(t) t.remove(); }
+
+function setActions(btns) {
+  const bar = document.getElementById('actions'); bar.innerHTML = '';
+  btns.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'btn ' + (b.cls || '');
+    el.innerHTML = b.label;
+    el.onclick = b.action;
+    bar.appendChild(el);
+  });
+}
+
+function start() {
+  addMsg('Привет! 👋 Я <b>Kaguya 2.0_bot</b> — ваш виртуальный помощник.<br>Нажмите кнопку, чтобы начать.', 'bot');
+  setActions([{ label:'🚀 Начать', cls:'btn-start', action: showCategories }]);
+}
+
+function showCategories() {
+  addMsg('Выбери категорию:', 'bot');
+  setActions(CATEGORIES.map(c => ({ label: c.label, action: () => selectCategory(c) })));
+}
+
+function selectCategory(cat) {
+  addMsg(cat.label, 'user');
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    let msg = '<b>' + cat.label + '</b><br><br>';
+    if (cat.link) {
+      msg += '🔗 <a href="' + cat.link + '" target="_blank">' + cat.text + '</a>';
+    } else {
+      msg += '⏳ ' + cat.text;
+    }
+    addMsg(msg, 'bot');
+    setActions([
+      { label:'‹ Назад', cls:'btn-back', action: showCategories },
+      { label:'🏠 Главная', action: start }
+    ]);
+  }, 600);
+}
+
+renderProfile();
+start();
+</script>
+</body>
+</html>
